@@ -1,6 +1,8 @@
 <?php
 require 'db.php';
 
+echo "adsadawut puttarak";
+
 try {
     if ($pdo) {
         echo "<h1>Connected to Database successfully!</h1>";
