@@ -14,6 +14,12 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+    
+    // Initialize schema if needed
+    $sql = file_get_contents(__DIR__ . '/init.sql');
+    if ($sql) {
+        $pdo->exec($sql);
+    }
 } catch (\PDOException $e) {
     throw new \PDOException($e->getMessage(), (int)$e->getCode());
 }
