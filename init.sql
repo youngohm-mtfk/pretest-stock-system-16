@@ -37,6 +37,13 @@ INSERT IGNORE INTO categories (name) VALUES
 ('CPU'), ('GPU'), ('RAM'), ('Motherboard'), ('PSU'), ('SSD/HDD'), ('Case'), ('Cooler');
 
 CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'seller', 'buyer') DEFAULT 'buyer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Ensure roles are updated if table already exists
 ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'seller', 'buyer') DEFAULT 'buyer';
 
