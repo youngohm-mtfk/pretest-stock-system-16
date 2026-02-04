@@ -98,11 +98,11 @@ if (isLoggedIn()) {
         <form method="POST">
             <div class="form-group" style="margin-bottom: 1.5rem">
                 <label>Username</label>
-                <input type="text" name="username" placeholder="Enter username" required autofocus>
+                <input type="text" name="username" placeholder="ohm" required autofocus>
             </div>
             <div class="form-group" style="margin-bottom: 2rem">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="Enter password" required>
+                <input type="password" name="password" placeholder="555" required>
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center">
                 Sign In
