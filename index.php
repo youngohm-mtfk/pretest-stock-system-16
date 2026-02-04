@@ -7,10 +7,10 @@ if (!isLoggedIn()) {
 }
 
 $role = getRole();
-if ($role === 'admin') {
-    header('Location: admin.php');
+if ($role === 'admin' || $role === 'seller') {
+    header('Location: seller_dashboard.php');
 } else {
-    header('Location: user.php');
+    header('Location: buyer_dashboard.php');
 }
 exit();
 ?>
