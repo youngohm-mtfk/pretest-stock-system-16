@@ -297,8 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>USERNAME</label>
                     <div class="input-wrapper">
-                        <input type="text" name="username" placeholder="admin / seller / buyer" required
-                            autocomplete="off">
+                        <input type="text" name="username" placeholder="username" required autocomplete="off">
                     </div>
                 </div>
 
