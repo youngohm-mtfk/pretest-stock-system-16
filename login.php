@@ -52,132 +52,278 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เข้าสู่ระบบ - Stock System</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Stock System - Premium Login</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Prompt:wght@300;400;600&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg: #f3f4f6;
-            --card-bg: #ffffff;
-            --text: #1f2937;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --bg: #0f172a;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Prompt', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Outfit', 'Prompt', sans-serif;
+            background-color: var(--bg);
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0;
+            overflow: hidden;
+            position: relative;
         }
 
-        .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 2.5rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        /* Animated Background Mesh */
+        .bg-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            max-width: 400px;
-            animation: fadeIn 0.5s ease-out;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 20% 30%, #4338ca 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, #1e1b4b 0%, transparent 40%),
+                radial-gradient(circle at 100% 10%, #312e81 0%, transparent 30%);
+            filter: blur(80px);
+            animation: bgShift 20s infinite alternate linear;
         }
 
-        @keyframes fadeIn {
+        @keyframes bgShift {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.1) rotate(5deg);
+            }
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+            z-index: 10;
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 2rem;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: cardEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes cardEntrance {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(30px) scale(0.95);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
         }
 
-        .login-card h2 {
-            margin-bottom: 2rem;
+        .header {
             text-align: center;
-            color: var(--text);
-            font-weight: 600;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 0.9rem;
         }
 
         .form-group {
             margin-bottom: 1.5rem;
+            position: relative;
         }
 
         .form-group label {
             display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
             margin-bottom: 0.5rem;
-            color: #4b5563;
-            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
         }
 
         .form-group input {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            box-sizing: border-box;
-            transition: border-color 0.2s, ring 0.2s;
+            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s;
         }
 
         .form-group input:focus {
             outline: none;
+            background: rgba(255, 255, 255, 0.08);
             border-color: var(--primary);
-            ring: 2px solid rgba(79, 70, 229, 0.2);
+            box-shadow: 0 0 15px var(--primary-glow);
         }
 
         .btn-login {
             width: 100%;
-            padding: 0.75rem;
-            background-color: var(--primary);
+            padding: 1rem;
+            margin-top: 1rem;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
             color: white;
             border: none;
-            border-radius: 0.5rem;
-            font-weight: 600;
+            border-radius: 1rem;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.3s;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
         }
 
         .btn-login:hover {
-            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
         }
 
         .error-msg {
-            background-color: #fee2e2;
-            color: #b91c1c;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
             padding: 0.75rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.875rem;
+            border-radius: 0.75rem;
+            font-size: 0.85rem;
             text-align: center;
+            margin-bottom: 1.5rem;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .footer-links {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .social-dots {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--glass-border);
+        }
+
+        .dot.active {
+            background: var(--primary);
         }
     </style>
 </head>
 
 <body>
-    <div class="login-card">
-        <h2>เข้าสู่ระบบ</h2>
-        <?php if ($error): ?>
-            <div class="error-msg">
-                <?php echo $error; ?>
+
+    <div class="bg-gradient"></div>
+
+    <div class="login-container">
+        <div class="glass-card">
+            <div class="header">
+                <h1>WELCOME BACK</h1>
+                <p>Please enter your details to sign in</p>
             </div>
-        <?php endif; ?>
-        <form method="POST">
-            <div class="form-group">
-                <label for="username">ชื่อผู้ใช้</label>
-                <input type="text" id="username" name="username" required placeholder="admin / seller / buyer">
+
+            <?php if ($error): ?>
+                <div class="error-msg">
+                    ⚠️ <?php echo htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST">
+                <div class="form-group">
+                    <label>USERNAME</label>
+                    <div class="input-wrapper">
+                        <input type="text" name="username" placeholder="admin / seller / buyer" required
+                            autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>PASSWORD</label>
+                    <div class="input-wrapper">
+                        <input type="password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login">SIGN IN</button>
+            </form>
+
+            <div class="social-dots">
+                <div class="dot active"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
             </div>
-            <div class="form-group">
-                <label for="password">รหัสผ่าน</label>
-                <input type="password" id="password" name="password" required placeholder="555">
+
+            <div class="footer-links">
+                © 2024 Stock System Premium Experience
             </div>
-            <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
-        </form>
+        </div>
     </div>
+
 </body>
 
 </html>
