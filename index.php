@@ -12,7 +12,7 @@
 <body>
     <div class="container">
         <header>
-            <div>
+            <div>2
                 <h1>PC Build Station</h1>
                 <p style="color: var(--text-muted)">Inventory Management System</p>
             </div>
