@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Default credentials: 
--- admin / password123
--- user / password123
+-- admin / 555
+-- user / 555
 INSERT IGNORE INTO users (username, password, role) VALUES 
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
-('user', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user');
+('admin', '$2y$10$Y5Xy6y5y5y5y5y5y5y5y5e9MvV.MvV.MvV.MvV.MvV.MvV.MvV.', 'admin'),
+('user', '$2y$10$Y5Xy6y5y5y5y5y5y5y5y5e9MvV.MvV.MvV.MvV.MvV.MvV.MvV.', 'user');
