@@ -52,3 +52,46 @@ REPLACE INTO users (id, username, password, role) VALUES
 (1, 'admin', '$2y$10$Y5Xy6y5y5y5y5y5y5y5y5e9MvV.MvV.MvV.MvV.MvV.MvV.MvV.', 'admin'),
 (2, 'seller', '$2y$10$Y5Xy6y5y5y5y5y5y5y5e9MvV.MvV.MvV.MvV.MvV.MvV.MvV.', 'seller'),
 (3, 'buyer', '$2y$10$Y5Xy6y5y5y5y5y5y5y5e9MvV.MvV.MvV.MvV.MvV.MvV.MvV.', 'buyer');
+
+-- --- NEW TABLES FOR COMPUTER SETS AND ORDERS ---
+
+CREATE TABLE IF NOT EXISTS product_sets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    image_url VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS product_set_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    set_id INT,
+    product_id INT,
+    quantity INT DEFAULT 1,
+    FOREIGN KEY (set_id) REFERENCES product_sets(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    total_price DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'paid', 'shipped', 'cancelled') DEFAULT 'pending',
+    payment_method VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT,
+    product_id INT NULL,
+    set_id INT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    type ENUM('product', 'set') NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
+    FOREIGN KEY (set_id) REFERENCES product_sets(id) ON DELETE SET NULL
+);

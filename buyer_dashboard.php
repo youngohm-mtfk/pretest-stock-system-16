@@ -9,17 +9,21 @@ if (!isset($_SESSION['cart'])) {
 
 // Handle Add to Cart
 if (isset($_POST['add_to_cart'])) {
-    $product_id = $_POST['product_id'];
+    $item_id = $_POST['item_id'];
     $name = $_POST['name'];
     $price = $_POST['price'];
+    $type = $_POST['type']; // 'product' or 'set'
+    $cart_key = $type . '_' . $item_id;
 
-    if (isset($_SESSION['cart'][$product_id])) {
-        $_SESSION['cart'][$product_id]['quantity']++;
+    if (isset($_SESSION['cart'][$cart_key])) {
+        $_SESSION['cart'][$cart_key]['quantity']++;
     } else {
-        $_SESSION['cart'][$product_id] = [
+        $_SESSION['cart'][$cart_key] = [
+            'id' => $item_id,
             'name' => $name,
             'price' => $price,
-            'quantity' => 1
+            'quantity' => 1,
+            'type' => $type
         ];
     }
     header('Location: buyer_dashboard.php' . (isset($_GET['cat']) ? '?cat=' . $_GET['cat'] : ''));
@@ -47,6 +51,16 @@ if ($selected_cat) {
     $stmt = $pdo->query("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id");
 }
 $products = $stmt->fetchAll();
+
+// Fetch Product Sets
+$sets_stmt = $pdo->query("SELECT * FROM product_sets ORDER BY created_at DESC");
+$product_sets = $sets_stmt->fetchAll();
+
+foreach ($product_sets as &$set) {
+    $item_stmt = $pdo->prepare("SELECT p.name FROM product_set_items psi JOIN products p ON psi.product_id = p.id WHERE psi.set_id = ?");
+    $item_stmt->execute([$set['id']]);
+    $set['items'] = $item_stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 
 // Calculate Cart Stats
 $cart_count = 0;
@@ -416,6 +430,8 @@ foreach ($_SESSION['cart'] as $item) {
             </div>
             <div style="font-size: 0.9rem;">
                 Hi, <strong><?php echo $_SESSION['username']; ?></strong>
+                <a href="order_history.php" style="color: var(--primary); text-decoration: none; margin-left: 1rem;">My
+                    Orders</a>
                 <a href="login.php?logout=1"
                     style="color: #ef4444; text-decoration: none; margin-left: 0.5rem;">Logout</a>
             </div>
@@ -444,6 +460,34 @@ foreach ($_SESSION['cart'] as $item) {
 
         <!-- Main Content -->
         <main>
+            <?php if (!$selected_cat): ?>
+                <h2 style="margin-bottom: 1.5rem; color: var(--accent);">💻 Computer Sets (เซ็ตสุดคุ้ม)</h2>
+                <div class="product-grid" style="margin-bottom: 3rem;">
+                    <?php foreach ($product_sets as $s): ?>
+                        <div class="product-card" style="border-color: rgba(16, 185, 129, 0.2);">
+                            <div class="product-image">🖥️</div>
+                            <div class="product-cat" style="color: #10b981;">SET BUNDLE</div>
+                            <div class="product-name"><?php echo htmlspecialchars($s['name']); ?></div>
+                            <div style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem;">
+                                <?php echo implode(', ', array_map('htmlspecialchars', $s['items'])); ?>
+                            </div>
+                            <div class="product-price">฿<?php echo number_format($s['price'], 2); ?></div>
+                            <form method="POST">
+                                <input type="hidden" name="item_id" value="<?php echo $s['id']; ?>">
+                                <input type="hidden" name="name" value="<?php echo htmlspecialchars($s['name']); ?>">
+                                <input type="hidden" name="price" value="<?php echo $s['price']; ?>">
+                                <input type="hidden" name="type" value="set">
+                                <button type="submit" name="add_to_cart" class="btn-add" style="background: #10b981;">
+                                    ➕ ใส่ตะกร้า
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin-bottom: 3rem;">
+            <?php endif; ?>
+
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary);">📦 Individual Components (อุปกรณ์แยกชิ้น)</h2>
             <div class="product-grid">
                 <?php if (empty($products)): ?>
                     <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--text-dim);">
@@ -474,9 +518,10 @@ foreach ($_SESSION['cart'] as $item) {
                         <div class="product-name"><?php echo htmlspecialchars($p['name']); ?></div>
                         <div class="product-price">฿<?php echo number_format($p['price'], 2); ?></div>
                         <form method="POST">
-                            <input type="hidden" name="product_id" value="<?php echo $p['id']; ?>">
+                            <input type="hidden" name="item_id" value="<?php echo $p['id']; ?>">
                             <input type="hidden" name="name" value="<?php echo htmlspecialchars($p['name']); ?>">
                             <input type="hidden" name="price" value="<?php echo $p['price']; ?>">
+                            <input type="hidden" name="type" value="product">
                             <button type="submit" name="add_to_cart" class="btn-add">
                                 ➕ ใส่ตะกร้า
                             </button>
@@ -524,9 +569,11 @@ foreach ($_SESSION['cart'] as $item) {
                 <span>Total</span>
                 <span>฿<?php echo number_format($cart_total, 2); ?></span>
             </div>
-            <button class="btn-checkout" <?php echo empty($_SESSION['cart']) ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''; ?>>
-                Checkout (฿<?php echo number_format($cart_total, 2); ?>)
-            </button>
+            <form action="checkout.php" method="POST">
+                <button type="submit" class="btn-checkout" <?php echo empty($_SESSION['cart']) ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''; ?>>
+                    Checkout (฿<?php echo number_format($cart_total, 2); ?>)
+                </button>
+            </form>
         </div>
     </div>
 

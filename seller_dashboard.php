@@ -57,6 +57,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "หมวดหมู่นี้อาจจะมีอยู่แล้ว";
         }
     }
+
+    // Save Product Set
+    if (isset($_POST['save_set'])) {
+        $id = $_POST['id'] ?? null;
+        $name = $_POST['name'];
+        $description = $_POST['description'];
+        $price = $_POST['price'];
+        $product_ids = $_POST['product_ids'] ?? [];
+
+        try {
+            $pdo->beginTransaction();
+            if ($id) {
+                $stmt = $pdo->prepare("UPDATE product_sets SET name=?, description=?, price=? WHERE id=?");
+                $stmt->execute([$name, $description, $price, $id]);
+                $stmt = $pdo->prepare("DELETE FROM product_set_items WHERE set_id=?");
+                $stmt->execute([$id]);
+                $set_id = $id;
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO product_sets (name, description, price) VALUES (?, ?, ?)");
+                $stmt->execute([$name, $description, $price]);
+                $set_id = $pdo->lastInsertId();
+            }
+
+            foreach ($product_ids as $prod_id) {
+                $stmt = $pdo->prepare("INSERT INTO product_set_items (set_id, product_id) VALUES (?, ?)");
+                $stmt->execute([$set_id, $prod_id]);
+            }
+            $pdo->commit();
+            $message = "บันทึกเซ็ตสินค้าเรียบร้อยแล้ว";
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            $error = "เกิดข้อผิดพลาด: " . $e->getMessage();
+        }
+    }
+
+    // Delete Product Set
+    if (isset($_POST['delete_set'])) {
+        $id = $_POST['id'];
+        $stmt = $pdo->prepare("DELETE FROM product_sets WHERE id=?");
+        $stmt->execute([$id]);
+        $message = "ลบเซ็ตสินค้าเรียบร้อยแล้ว";
+    }
+
+    // Update Order Status
+    if (isset($_POST['update_order_status'])) {
+        $order_id = $_POST['order_id'];
+        $status = $_POST['status'];
+        $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
+        $stmt->execute([$status, $order_id]);
+        $message = "บันทึกสถานะคำสั่งซื้อเรียบร้อยแล้ว";
+    }
 }
 
 // Fetch Data
@@ -65,6 +116,35 @@ $categories = $cat_stmt->fetchAll();
 
 $prod_stmt = $pdo->query("SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.created_at DESC");
 $products = $prod_stmt->fetchAll();
+
+$sets_stmt = $pdo->query("SELECT * FROM product_sets ORDER BY created_at DESC");
+$product_sets = $sets_stmt->fetchAll();
+
+foreach ($product_sets as &$set) {
+    $item_stmt = $pdo->prepare("SELECT p.name FROM product_set_items psi JOIN products p ON psi.product_id = p.id WHERE psi.set_id = ?");
+    $item_stmt->execute([$set['id']]);
+    $set['items'] = $item_stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // Also fetch product IDs for editing
+    $id_stmt = $pdo->prepare("SELECT product_id FROM product_set_items WHERE set_id = ?");
+    $id_stmt->execute([$set['id']]);
+    $set['product_ids'] = $id_stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+// Fetch Orders for Management
+$orders_stmt = $pdo->query("SELECT o.*, u.username FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC");
+$all_orders = $orders_stmt->fetchAll();
+foreach ($all_orders as &$order) {
+    $item_stmt = $pdo->prepare("
+        SELECT oi.*, p.name as p_name, ps.name as s_name 
+        FROM order_items oi 
+        LEFT JOIN products p ON oi.product_id = p.id 
+        LEFT JOIN product_sets ps ON oi.set_id = ps.id 
+        WHERE oi.order_id = ?
+    ");
+    $item_stmt->execute([$order['id']]);
+    $order['items'] = $item_stmt->fetchAll();
+}
 
 // Stats
 $total_products = count($products);
@@ -352,10 +432,12 @@ foreach ($products as $p) {
         <div class="header-title">
             <h1>🛠️ ระบบจัดการหลังบ้าน</h1>
             <p style="font-size: 0.8rem; color: var(--text-dim);">ยินดีต้อนรับ,
-                <strong><?php echo $_SESSION['username']; ?></strong> (<?php echo strtoupper($_SESSION['role']); ?>)</p>
+                <strong><?php echo $_SESSION['username']; ?></strong> (<?php echo strtoupper($_SESSION['role']); ?>)
+            </p>
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
             <a href="buyer_dashboard.php" class="btn btn-secondary">หน้าร้านค้า</a>
+            <a href="order_history.php" class="btn btn-secondary">ประวัติคำสั่งซื้อ</a>
             <a href="login.php?logout=1" class="logout-btn">ออกจากระบบ</a>
         </div>
     </header>
@@ -384,8 +466,12 @@ foreach ($products as $p) {
 
     <div class="actions-bar">
         <button class="btn btn-primary" onclick="openModal('productModal')">➕ เพิ่มสินค้าใหม่</button>
+        <button class="btn btn-primary" style="background: var(--success);" onclick="openModal('setModal')">💻
+            เพิ่มเซ็ตคอมพิวเตอร์</button>
         <button class="btn btn-secondary" onclick="openModal('categoryModal')">📁 จัดการหมวดหมู่</button>
     </div>
+
+    <h2 style="margin-bottom: 1.5rem;">📦 รายการสินค้าเดี่ยว</h2>
 
     <div class="table-container">
         <table>
@@ -407,7 +493,8 @@ foreach ($products as $p) {
                         <td>
                             <div style="font-weight: 600;"><?php echo htmlspecialchars($p['name']); ?></div>
                             <div style="font-size: 0.75rem; color: var(--text-dim);">
-                                <?php echo htmlspecialchars($p['sku']); ?></div>
+                                <?php echo htmlspecialchars($p['sku']); ?>
+                            </div>
                         </td>
                         <td><span class="badge"
                                 style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main);"><?php echo htmlspecialchars($p['category_name'] ?: 'ทั่วไป'); ?></span>
@@ -431,6 +518,47 @@ foreach ($products as $p) {
                             <form method="POST" style="display:inline;" onsubmit="return confirm('ลบสินค้านี้ใช่หรือไม่?')">
                                 <input type="hidden" name="id" value="<?php echo $p['id']; ?>">
                                 <button type="submit" name="delete_product" class="btn-delete">ลบ</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 style="margin-top: 3rem; margin-bottom: 1.5rem;">💻 รายการเซ็ตคอมพิวเตอร์</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>รูป/ไอคอน</th>
+                    <th>ชื่อเซ็ต</th>
+                    <th>อุปกรณ์ในเซ็ต</th>
+                    <th>ราคารวม</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($product_sets as $s): ?>
+                    <tr>
+                        <td style="font-size: 1.5rem; width: 80px; text-align: center;">🖥️</td>
+                        <td>
+                            <div style="font-weight: 600;"><?php echo htmlspecialchars($s['name']); ?></div>
+                            <div style="font-size: 0.75rem; color: var(--text-dim);">
+                                <?php echo htmlspecialchars($s['description']); ?></div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.85rem;">
+                                <?php echo implode(', ', array_map('htmlspecialchars', $s['items'])); ?>
+                            </div>
+                        </td>
+                        <td style="font-weight: 600;">฿<?php echo number_format($s['price'], 2); ?></td>
+                        <td>
+                            <a href="javascript:void(0)" onclick='editSet(<?php echo json_encode($s); ?>)'
+                                class="action-link">แก้ไข</a>
+                            <form method="POST" style="display:inline;" onsubmit="return confirm('ลบเซ็ตนี้ใช่หรือไม่?')">
+                                <input type="hidden" name="id" value="<?php echo $s['id']; ?>">
+                                <button type="submit" name="delete_set" class="btn-delete">ลบ</button>
                             </form>
                         </td>
                     </tr>
@@ -480,6 +608,43 @@ foreach ($products as $p) {
                     <button type="submit" name="save_product" class="btn btn-primary"
                         style="flex:1;">บันทึกข้อมูล</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal('productModal')">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Set Modal -->
+    <div id="setModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2 id="setModalTitle" style="margin-bottom: 1.5rem;">เพิ่มเซ็ตคอมพิวเตอร์</h2>
+            <form method="POST">
+                <input type="hidden" name="id" id="s_id">
+                <div class="form-group">
+                    <label>ชื่อเซ็ต</label>
+                    <input type="text" name="name" id="s_name" required>
+                </div>
+                <div class="form-group">
+                    <label>รายละเอียด</label>
+                    <textarea name="description" id="s_desc"
+                        style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 0.5rem; padding: 0.75rem;"
+                        rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>ราคารวมเซ็ต</label>
+                    <input type="number" step="0.01" name="price" id="s_price" required>
+                </div>
+                <div class="form-group">
+                    <label>เลือกอุปกรณ์ในเซ็ต (กด Ctrl ค้างไว้เพื่อเลือกหลายตัว)</label>
+                    <select name="product_ids[]" id="s_prods" multiple required style="height: 150px;">
+                        <?php foreach ($products as $p): ?>
+                            <option value="<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['name']); ?>
+                                (฿<?php echo number_format($p['price'], 2); ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" name="save_set" class="btn btn-primary" style="flex:1;">บันทึกข้อมูล</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('setModal')">ยกเลิก</button>
                 </div>
             </form>
         </div>
@@ -540,6 +705,21 @@ foreach ($products as $p) {
             document.getElementById('p_price').value = product.price;
             document.getElementById('p_qty').value = product.quantity;
             document.getElementById('p_min_qty').value = product.min_quantity;
+        }
+
+        function editSet(set) {
+            openModal('setModal');
+            document.getElementById('setModalTitle').innerText = 'แก้ไขเซ็ต: ' + set.name;
+            document.getElementById('s_id').value = set.id;
+            document.getElementById('s_name').value = set.name;
+            document.getElementById('s_desc').value = set.description;
+            document.getElementById('s_price').value = set.price;
+
+            // Set selected products
+            let select = document.getElementById('s_prods');
+            Array.from(select.options).forEach(option => {
+                option.selected = set.product_ids.includes(option.value);
+            });
         }
 
         window.onclick = function (event) {
